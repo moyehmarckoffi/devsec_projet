@@ -1,0 +1,33 @@
+---
+- name: Preparation et Deploiement sur VM Cible
+  hosts: prod
+  become: yes  # Pour executer en sudo
+  tasks:
+    - name: Mise a jour des paquets apt
+      apt:
+        update_cache: yes
+
+    - name: Installation de Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Verifier que Docker est demarre
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Nettoyer les anciens conteneurs (si existants)
+      docker_container:
+        name: mon_app_python
+        state: absent
+
+    - name: Lancer le nouveau conteneur de l'application
+      docker_container:
+        name: mon_app_python
+        image: moyehmarc/devsec_projet:latest
+        state: started
+        restart_policy: always
+        published_ports:
+          - "5000:5000"

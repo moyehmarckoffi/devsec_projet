@@ -66,6 +66,15 @@ pipeline {
         }
     }
 
+		stage('Deploy with Ansible') {
+            steps {
+                script {
+                    // On exécute Ansible depuis le dossier du projet
+                    sh 'ansible-playbook -i ansible/hosts.ini ansible/deploy.yml'
+                }
+            }
+        }
+
     post {
         always {
             echo "Pipeline terminé !"
