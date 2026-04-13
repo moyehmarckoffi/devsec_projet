@@ -49,7 +49,21 @@ pipeline {
             }
         }
     }
-}
+}	
+		stage('Deploy Application') {
+            steps {
+                echo "Déploiement du nouveau conteneur en cours..."
+                sh """
+                # On arrête le conteneur s'il existe, sans faire échouer le pipeline s'il n'existe pas
+                docker stop cont_dev_sec || true
+                docker rm cont_dev_sec || true
+                
+                # On lance le nouveau conteneur sur le port 5000
+                docker run -d -p 5000:5000 --name cont_dev_sec mon-app-python:latest
+                """
+                echo "Application disponible sur http://localhost:5000"
+            }
+        }
     }
 
     post {
@@ -57,4 +71,4 @@ pipeline {
             echo "Pipeline terminé !"
         }
     }
-}
+} 
