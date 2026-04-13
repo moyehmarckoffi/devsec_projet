@@ -53,7 +53,7 @@ pipeline {
             steps {
                 echo "Envoi de l'image sur Docker Hub..."
                 // On utilise sudo ici car tes tests manuels ont montré que c'était nécessaire
-                sh "sudo docker push ${IMAGE_NAME}:latest"
+                sh "docker push ${IMAGE_NAME}:latest"
             }
         }
 
