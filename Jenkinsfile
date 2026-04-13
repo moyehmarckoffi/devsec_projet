@@ -36,6 +36,20 @@ pipeline {
                 sh "trivy image ${IMAGE_NAME}:latest"
             }
         }
+	stage('Quality Analysis (SonarQube)') {
+		steps {
+		script {
+            // On utilise l'outil configuré dans Jenkins
+            def scannerHome = tool 'SonarScanner'
+            withSonarQubeEnv('SonarQube') {
+                sh "${scannerHome}/bin/sonar-scanner \
+                -Dsonar.projectKey=devsec_projet \
+                -Dsonar.sources=. \
+                -Dsonar.host.url=http://localhost:9000"
+            }
+        }
+    }
+}
     }
 
     post {
