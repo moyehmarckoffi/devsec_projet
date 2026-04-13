@@ -62,7 +62,7 @@ pipeline {
                 script {
                     echo "Déploiement sur la VM de production via Ansible..."
                     // On lance le playbook qui va faire le travail sur la VM 2
-                    sh 'ansible-playbook -i ansible/hosts.ini ansible/deploy.yml'
+                    sh "ansible-playbook -i ansible/hosts.ini ansible/deploy.yml --extra-vars 'ansible_ssh_common_args=\"-o StrictHostKeyChecking=no\"'"
                 }
             }
         }
