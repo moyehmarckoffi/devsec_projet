@@ -30,4 +30,4 @@
         state: started
         restart_policy: always
         published_ports:
-          - "5000:5000"
+          - "0.0.0.0:8080:5000"
