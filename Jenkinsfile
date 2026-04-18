@@ -2,8 +2,9 @@ pipeline {
     agent any
 
     environment {
-        // On utilise ton nom Docker Hub pour que tout soit cohérent
         IMAGE_NAME = "moyehmarc/devsec_projet"
+        // Nom du scanner défini dans "Manage Jenkins > Tools"
+        SCANNER_HOME = tool 'sonar-scanner' 
     }
 
     stages {
@@ -13,10 +14,25 @@ pipeline {
             }
         }
 
-        stage('Security Scan (Trivy)') {
+        stage('Security Scan (Trivy FS)') {
             steps {
                 echo "Analyse des vulnérabilités du code source..."
                 sh "trivy fs ."
+            }
+        }
+
+        stage('Quality Analysis (SonarCloud)') {
+            steps {
+                echo "Analyse de la qualité sur SonarCloud..."
+                // Utilisation du Token sécurisé configuré dans Jenkins
+                withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
+                    sh "${SCANNER_HOME}/bin/sonar-scanner \
+                        -Dsonar.projectKey=dev-sec-project_dev-sec-project \
+                        -Dsonar.organization=dev-sec-project \
+                        -Dsonar.sources=. \
+                        -Dsonar.host.url=https://sonarcloud.io \
+                        -Dsonar.token=${SONAR_TOKEN}"
+                }
             }
         }
 
@@ -28,42 +44,27 @@ pipeline {
             }
         }
 
-        stage('Image Security Scan') {
+        stage('Image Security Scan (Trivy)') {
             steps {
                 echo "Scan de l'image Docker générée..."
                 sh "trivy image ${IMAGE_NAME}:latest"
             }
         }
 
-        stage('Quality Analysis (SonarQube)') {
-            steps {
-                script {
-                    def scannerHome = tool 'SonarScanner'
-                    withSonarQubeEnv('SonarQube') {
-                        sh "${scannerHome}/bin/sonar-scanner \
-                        -Dsonar.projectKey=devsec_projet \
-                        -Dsonar.sources=. \
-                        -Dsonar.host.url=http://localhost:9000"
-                    }
-                }
-            }
-        }
-
         stage('Push to Docker Hub') {
             steps {
                 echo "Envoi de l'image sur Docker Hub..."
-                // On utilise sudo ici car tes tests manuels ont montré que c'était nécessaire
+                // Connexion et Push (Assure-toi d'être connecté sur la VM ou d'ajouter un stage login)
                 sh "docker push ${IMAGE_NAME}:latest"
+                sh "docker push ${IMAGE_NAME}:${BUILD_NUMBER}"
             }
         }
 
         stage('Deploy with Ansible') {
             steps {
-                script {
-                    echo "Déploiement sur la VM de production via Ansible..."
-                    // On lance le playbook qui va faire le travail sur la VM 2
-                    sh "ansible-playbook -i ansible/hosts.ini ansible/deploy.yml --extra-vars 'ansible_ssh_common_args=\"-o StrictHostKeyChecking=no\"'"
-                }
+                echo "Déploiement sur la VM via Ansible..."
+                // Utilisation des fichiers dans ton dossier ansible/
+                sh "ansible-playbook -i ansible/hosts.ini ansible/deploy.yml --extra-vars 'image_tag=${BUILD_NUMBER}'"
             }
         }
     }
@@ -71,6 +72,14 @@ pipeline {
     post {
         always {
             echo "Pipeline terminé !"
+            // Nettoyage optionnel pour économiser l'espace disque
+            sh "docker image prune -f"
+        }
+        success {
+            echo "Déploiement réussi avec succès !"
+        }
+        failure {
+            echo "Le pipeline a échoué. Vérifie les logs de l'étape en erreur."
         }
     }
 }

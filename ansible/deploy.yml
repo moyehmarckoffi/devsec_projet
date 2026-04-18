@@ -1,15 +1,17 @@
 ---
 - name: Preparation et Deploiement sur VM Cible
   hosts: prod
-  become: yes  # Pour executer en sudo
+  become: yes
   tasks:
     - name: Mise a jour des paquets apt
       apt:
         update_cache: yes
 
-    - name: Installation de Docker
+    - name: Installation de Docker et dépendances Python
       apt:
-        name: docker.io
+        name:
+          - docker.io
+          - python3-docker  # INDISPENSABLE pour les modules docker d'Ansible
         state: present
 
     - name: Verifier que Docker est demarre
@@ -18,16 +20,22 @@
         state: started
         enabled: yes
 
-    - name: Nettoyer les anciens conteneurs (si existants)
+    - name: Pull de l'image depuis Docker Hub
+      docker_image:
+        name: "moyehmarc/devsec_projet"
+        tag: "{{ image_tag | default('latest') }}"
+        source: pull
+
+    - name: Nettoyer les anciens conteneurs
       docker_container:
         name: mon_app_python
         state: absent
 
-    - name: Lancer le nouveau conteneur de l'application
+    - name: Lancer le nouveau conteneur
       docker_container:
         name: mon_app_python
-        image: moyehmarc/devsec_projet:latest
+        image: "moyehmarc/devsec_projet:{{ image_tag | default('latest') }}"
         state: started
         restart_policy: always
         published_ports:
-          - "0.0.0.0:8080:5000"
+          - "8080:5000"
