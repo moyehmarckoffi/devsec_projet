@@ -61,12 +61,12 @@ pipeline {
         }
 
         stage('Deploy with Ansible') {
-            steps {
-                echo "Déploiement sur la VM via Ansible..."
-                // Utilisation des fichiers dans ton dossier ansible/
-                sh "ansible-playbook -i ansible/hosts.ini ansible/deploy.yml --extra-vars 'image_tag=${BUILD_NUMBER}'"
-            }
-        }
+    steps {
+        echo "Déploiement sur la VM via Ansible..."
+        // On ajoute l'argument pour ignorer le HostKeyChecking
+        sh "ansible-playbook -i ansible/hosts.ini ansible/deploy.yml --extra-vars 'image_tag=${BUILD_NUMBER}' --ssh-common-args='-o StrictHostKeyChecking=no'"
+    }
+}
     }
 
     post {
